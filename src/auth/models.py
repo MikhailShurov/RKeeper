@@ -14,7 +14,7 @@ user_table = Table(
 )
 
 
-class Users(Base):
+class User(Base):
     __tablename__ = "users"
     id = Column("id", Integer(), primary_key=True, autoincrement=True, nullable=False)
     email = Column("email", String(length=320), index=True, nullable=False, primary_key=True)
