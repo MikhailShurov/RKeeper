@@ -1,7 +1,7 @@
 import hashlib
 
 import jwt
-from config import SECRET_JWT_KEY
+from src.config import SECRET_JWT_KEY
 
 from src.config import DB_USER, DB_PASS, DB_HOST, DB_NAME, DB_PORT
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
