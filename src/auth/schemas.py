@@ -8,3 +8,4 @@ class Auth(BaseModel):
 class Token(BaseModel):
     token: str
     token_type: str
+
