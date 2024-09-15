@@ -1,10 +1,7 @@
 import uvicorn
+from fastapi import FastAPI
+
 from src.auth.routers import router as auth_router
-
-from typing import Annotated
-
-from fastapi import Depends, FastAPI
-from fastapi.security import OAuth2PasswordBearer
 
 app = FastAPI(title="RKeeper")
 
