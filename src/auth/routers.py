@@ -34,4 +34,4 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
     token = await create_jwt_token(str(user_data.id))
-    return Token(token=token, token_type='bearer')
+    return {"access_token": token, "token_type": 'bearer'}

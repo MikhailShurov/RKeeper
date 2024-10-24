@@ -1,12 +1,16 @@
 import hashlib
+import logging
 
 import jwt
-from src.config import SECRET_JWT_KEY
-
-from src.config import DB_USER, DB_PASS, DB_HOST, DB_NAME, DB_PORT
+from pymongo import MongoClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from src.db_manager import DBManager
+
+from src.config import DB_USER, DB_PASS, DB_HOST, DB_NAME, DB_PORT
+from src.config import MONGO_USER, MONGO_PASS, MONGO_HOST, MONGO_PORT, MONGO_DB_NAME
+from src.config import SECRET_JWT_KEY
+from src.db_manager_mongo import DBManagerMongo
+from src.db_manager_postgres import DBManagerPostgres
 
 DATABASE_URL = f"postgresql+asyncpg://{DB_NAME}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_USER}?async_fallback=True"
 
@@ -22,9 +26,19 @@ async def get_async_session() -> AsyncSession:
         yield session
 
 
-async def get_db_manager() -> DBManager:
+async def get_db_manager() -> DBManagerPostgres:
     async with async_session_maker() as session:
-        return DBManager(session)
+        return DBManagerPostgres(session)
+
+
+logging.basicConfig(level=logging.INFO)
+
+MONGO_URL = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}/mongodb"
+connection = MongoClient(MONGO_URL, authSource="admin")
+
+
+async def get_mongo_db_manager() -> DBManagerMongo:
+    return DBManagerMongo(connection.get_database(MONGO_DB_NAME))
 
 
 async def create_jwt_token(user_id: str) -> str:
@@ -42,6 +56,7 @@ async def hash_password(password: str) -> str:
     password_bytes = password.encode('utf-8')
     hashed_password = hashlib.sha256(password_bytes).hexdigest()
     return hashed_password
+
 
 async def verify_password(password: str, hashed_password: str) -> bool:
     return await hash_password(password) == hashed_password

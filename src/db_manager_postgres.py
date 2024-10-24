@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.models import User, user_table
 
 
-class DBManager:
+class DBManagerPostgres:
     def __init__(self, session: AsyncSession):
         self.session = session
 
