@@ -42,11 +42,21 @@ class DBManagerMongo:
         )
 
     async def user_update_recipe(self, user_id: str, recipe_id: str, recipe: Recipe):
-        user = await self.db.recipes.find_one({"_id": user_id})
+        user = self.db.recipes.find_one({"_id": user_id})
+
         recipe_dict = recipe.model_dump()
-        recipe_dict["recipe_id"] = next(
-            (recipe for recipe in user.get("recipes", []) if recipe.get("_id") == recipe_id), None)
-        recipe_dict['cuisine'] = recipe_dict['cuisine'].value
+
+        updated_recipe = next(
+            (recipe for recipe in user.get("recipes", []) if recipe.get("recipe_id") == recipe_id), None)
+
+        if updated_recipe:
+            updated_recipe.update(recipe_dict)
+            updated_recipe['cuisine'] = recipe_dict['cuisine'].value
+
+            self.db.recipes.update_one(
+                {"_id": user_id},
+                {"$set": {"recipes": user.get("recipes")}}
+            )
 
     async def get_published(self):
         pass
@@ -61,11 +71,11 @@ class DBManagerMongo:
         pass
 
     async def check_if_recipe_exists(self, user_id: str, recipe_id: str) -> bool:
-        user = await self.db.recipes.find_one({"_id": user_id})
+        user = self.db.recipes.find_one({"_id": user_id})
         if user is None:
             return False
 
         for recipe in user.get("recipes", []):
-            if recipe.get("_id") == recipe_id:
+            if recipe.get("recipe_id") == recipe_id:
                 return True
         return False

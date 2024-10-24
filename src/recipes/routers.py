@@ -50,13 +50,14 @@ async def delete_recipe(recipe_id: RecipeID, token: str = Depends(oauth2_scheme)
 async def update_recipe(recipe_id: RecipeID, recipe: Recipe, token: str = Depends(oauth2_scheme)):
     token_payload = await decode_jwt_token(token)
     recipe_id = str(recipe_id.model_dump()["recipe_id"])
+    print(token_payload)
     user_id = token_payload["user_id"]
     db_manager_mongo = await get_mongo_db_manager()
 
     if not await db_manager_mongo.check_if_recipe_exists(user_id, recipe_id):
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    result = await db_manager_mongo.user_update_recipe(user_id, recipe_id, recipe)
+    await db_manager_mongo.user_update_recipe(user_id, recipe_id, recipe)
 
-    return {"message": "Рецепт успешно обновлен."}
+    return {"message": "Recipe successfully updated"}
 
