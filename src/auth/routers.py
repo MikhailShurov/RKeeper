@@ -35,3 +35,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
 
     token = await create_jwt_token(str(user_data.id))
     return {"access_token": token, "token_type": 'bearer'}
+
+@router.post("/email_validation")
+async def email_validation(form_data: OAuth2PasswordRequestForm = Depends()):
+    pass
