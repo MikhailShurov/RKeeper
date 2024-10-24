@@ -1,8 +1,8 @@
 version: "3.8"
 services:
-  db:
+  postgres:
     image: postgres:16
-    container_name: db
+    container_name: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
@@ -29,8 +29,31 @@ services:
     env_file:
       - ./.env
     depends_on:
-      - db
-    command: [ "/app/scripts/app.sh" ]
+      - postgres
+      - mongo_db
+    command: >
+      /bin/bash -c "
+      alembic upgrade head &&
+      gunicorn src.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind=0.0.0.0:8080
+      "
+
+  mongo_db:
+    image: mongo:latest
+    container_name: mongo_db
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --eval 'db.runCommand({ ping: 1 })'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+  mongo_data:

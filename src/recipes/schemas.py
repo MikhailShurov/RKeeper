@@ -16,7 +16,7 @@ class Cuisine(Enum):
 class Recipe(BaseModel):
     cuisine: Cuisine
     title: str
-    ingredients: list
+    ingredients: list[int]
     step_by_step: str
     full_time: int
     photo: str

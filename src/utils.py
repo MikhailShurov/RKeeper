@@ -1,4 +1,5 @@
 import hashlib
+import logging
 
 import jwt
 from pymongo import MongoClient
@@ -30,8 +31,10 @@ async def get_db_manager() -> DBManagerPostgres:
         return DBManagerPostgres(session)
 
 
+logging.basicConfig(level=logging.INFO)
+
 MONGO_URL = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}/mongodb"
-connection = MongoClient(MONGO_URL)
+connection = MongoClient(MONGO_URL, authSource="admin")
 
 
 async def get_mongo_db_manager() -> DBManagerMongo:
