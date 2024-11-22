@@ -1,7 +1,8 @@
 import uuid
 
 from pymongo.database import Database
-from src.recipes.schemas import Recipe
+
+from src.recipes.schemas import Recipe, Comment
 
 
 class DBManagerMongo:
@@ -17,12 +18,28 @@ class DBManagerMongo:
             })
 
     async def user_get_recipes(self, user_id: str):
-        recipes = self.db.recipes.find({"_id": str(user_id)})
-        return list(recipes)
+        recipes = list(self.db.recipes.find({"_id": str(user_id)}))
+        result = [{
+            'recipe_id': recipe['recipe_id'],
+            'title': recipe['title'],
+            'image_link': recipe['image_link'],
+            'description': recipe['description'],
+            'cook_time': recipe['cook_time'],
+        } for recipe in recipes[0]['recipes']]
+        return result
 
-    async def user_get_recipe(self, user_id, recipe_id: str):
-        # recipe = self.db.recipes.find_one({"_id": user})
-        pass
+    async def user_get_recipe(self, user_id: str, recipe_id: str):
+        user = self.db.recipes.find_one({"_id": user_id})
+
+        if user is None:
+            return None
+
+        user_recipes = user.get('recipes', [])
+
+        for recipe in user_recipes:
+            if str(recipe['recipe_id']) == recipe_id:
+                return recipe
+        return None
 
     async def user_add_recipe(self, user_id: str, recipe: Recipe):
         recipe_dict = recipe.model_dump()
@@ -58,17 +75,61 @@ class DBManagerMongo:
                 {"$set": {"recipes": user.get("recipes")}}
             )
 
-    async def get_published(self):
+    async def save_comment(self, recipe_id: str, comment: Comment):
         pass
+        # ToDo save comment
+        # result = await self.db.recipes.update_one(
+        #     {"recipes.recipe_id": recipe_id},
+        #     {"$push": {"recipes.$.comments": comment.model_dump()}}
+        # )
+        # return result.modified_count > 0
 
-    async def publish_recipe(self, recipe_id: str):
-        pass
+    async def get_published(self, user_id):
+        recipes = list(self.db.recipes.find({"_id": str(user_id)}))
+        result = [{
+            'recipe_id': recipe['recipe_id'],
+            'title': recipe['title'],
+            'image_link': recipe['image_link'],
+            'description': recipe['description'],
+            'cook_time': recipe['cook_time'],
+        } for recipe in recipes[0]['recipes'] if recipe['published'] is True]
+        return result
 
-    async def unpublish_recipe(self, recipe_id: str):
-        pass
+    async def publish_recipe(self, user_id, recipe_id: str):
+        user = self.db.recipes.find_one({"_id": str(user_id)})
+        if user is None:
+            return False
+        updated = False
+        for recipe in user['recipes']:
+            if recipe['recipe_id'] == recipe_id:
+                recipe['published'] = True
+                updated = True
+                break
+        if updated:
+            self.db.recipes.update_one(
+                {"_id": str(user_id)},
+                {"$set": {"recipes": user['recipes']}}
+            )
+            return True
+        return False
 
-    async def get_user_following_latest(self):
-        pass
+    async def unpublish_recipe(self, user_id: str, recipe_id: str):
+        user = self.db.recipes.find_one({"_id": str(user_id)})
+        if user is None:
+            return False
+        updated = False
+        for recipe in user['recipes']:
+            if recipe['recipe_id'] == recipe_id:
+                recipe['published'] = False
+                updated = True
+                break
+        if updated:
+            self.db.recipes.update_one(
+                {"_id": str(user_id)},
+                {"$set": {"recipes": user['recipes']}}
+            )
+            return True
+        return False
 
     async def check_if_recipe_exists(self, user_id: str, recipe_id: str) -> bool:
         user = self.db.recipes.find_one({"_id": user_id})

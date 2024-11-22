@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,7 +54,20 @@ class DBManagerPostgres:
 
         return None
 
+    async def remove_expired_users(self):
+        current_timestamp = int(datetime.now().timestamp())
+        result = await self.session.execute(
+            select(NonvalidUser).where(NonvalidUser.token_expires_at < current_timestamp)
+        )
+        expired_users = result.scalars().all()
+
+        for user in expired_users:
+            await self.session.delete(user)
+
+        await self.session.commit()
+
     async def create_tmp_user(self, email: str, hashed_password: str, validation_start_timestamp: int, token: int):
+        await self.remove_expired_users()
         user = NonvalidUser(email=email, hashed_password=hashed_password,
                             token_expires_at=validation_start_timestamp,
                             token_hashed_value=str(token))

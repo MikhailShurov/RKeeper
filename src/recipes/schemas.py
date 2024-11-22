@@ -13,11 +13,20 @@ class Cuisine(Enum):
     RUSSIAN = "russian"
 
 
+class Comment(BaseModel):
+    comment_id: str
+    user_id: str
+    content: str
+
+
 class Recipe(BaseModel):
     cuisine: Cuisine
     title: str
     ingredients: list[int]
+    image_link: str
+    description: str
     step_by_step: str
-    full_time: int
+    cook_time: int
     photo: str
     published: bool
+    comments: list[Comment]

@@ -1,8 +1,10 @@
 import hashlib
 import logging
+from typing import List, Dict
 
 import jwt
 from fastapi import HTTPException
+from fastapi import WebSocket
 from pymongo import MongoClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -22,6 +24,7 @@ engine = create_async_engine(DATABASE_URL,
                              })
 async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # NOQA
 
+opened_websoket_connections: Dict[str, List[WebSocket]] = {}
 
 app = Celery('src.celery_tasks.tasks', broker='amqp://guest:guest@rabbitmq//')
 
@@ -93,31 +96,60 @@ def generate_secret_code():
     print(a)
     return a
 
+
 def check_string_format(input_string):
     tre = input_string.split("@")
-    if len(tre) != 2:
-        return False
     first_word = tre[0]
-    if len(first_word) > 64:
+    if (len(tre) != 2 or len(first_word) > 64 or len(first_word) == 0 or first_word[0] in [".", "_", "-"]
+            or first_word[-1] == "."):
         return False
-    if len(first_word) == 0:
-        return False
-    if first_word[0] in [".", "_", "-"]:
-        return False
-    if first_word[-1] == ".":
-        return False
+
     tr = first_word.split(".")
+
     for i in tr:
         if len(i) == 0:
             return False
 
-    second_word = tre[1]
-    we = second_word.split(".")
-    if len(tre) != 2:
-        return False
-    if not we[0].isalpha():
-        return False
-    if not we[1].isalpha():
+    we = tre[1].split(".")
+    if len(tre) != 2 or not we[0].isalpha() or not we[1].isalpha():
         return False
 
     return True
+
+
+def html_template(recipe_id: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>WebSocket Recipe Chat</title>
+            <script>
+                const recipeId = "{recipe_id}";
+                var ws = new WebSocket(`ws://localhost:8080/recipes/ws/djnavjdfvjkdfvjcboerg73bcv83b/{recipe_id}`);
+
+                ws.onmessage = function(event) {{
+                    var messages = document.getElementById('messages');
+                    messages.innerHTML += '<div>' + event.data + '</div>';
+                }};
+
+                function sendMessage() {{
+                    var input = document.getElementById('messageInput');
+                    var message = input.value;
+
+                    // Отображаем отправленное сообщение у отправителя
+                    var messages = document.getElementById('messages');
+                    messages.innerHTML += '<div><strong>Me:</strong> ' + message + '</div>';
+
+                    ws.send(message);
+                    input.value = '';
+                }}
+            </script>
+        </head>
+        <body>
+            <h1>WebSocket Chat for Recipe {recipe_id}</h1>
+            <div id="messages" style="border: 1px solid #ccc; height: 300px; overflow-y: scroll;"></div>
+            <input id="messageInput" type="text" placeholder="Type a comment...">
+            <button onclick="sendMessage()">Send</button>
+        </body>
+    </html>
+    """
